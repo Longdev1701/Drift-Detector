@@ -184,5 +184,3 @@ Flask Coordinator cung cấp các API RESTful sau:
 * **`GET /api/export/transactions/<site>`**: Tải xuống danh sách giao dịch dưới dạng file CSV.
 * **`GET /api/export/candidates`**: Xuất danh sách ứng viên di trú sang file CSV.
 * **`GET /api/export/drift`**: Xuất dữ liệu thống kê drift sang file CSV.
-#   D r i f t - D e t e c t o r  
- 
