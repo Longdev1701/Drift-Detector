@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drift Detector — Online Banking Ledger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🏦</span>
+                <div>
+                    <h1>Online Banking Ledger</h1>
+                    <p class="subtitle">Drift Detector — Distributed Database Fragmentation Analysis</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);padding:6px 12px;border-radius:6px;">
+                    <label for="lr-threshold" style="font-weight:600;font-size:13px;color:#fff;">LR Threshold:</label>
+                    <input type="number" id="lr-threshold" value="0.70" step="0.05" min="0.1" max="1.0" 
+                           style="width:60px;padding:4px;border-radius:4px;border:none;text-align:center;font-weight:bold;background:#fff;color:#333;">
+                </div>
+                <button class="btn btn-reset" onclick="undoMigration()" id="btn-undo">
+                    <span>🔙</span> Undo Migration
+                </button>
+            </div>
+        </div>
+        <nav>
+            <button class="tab active" data-tab="overview">📊 Overview</button>
+            <button class="tab" data-tab="site-a">🅰️ Site A Database</button>
+            <button class="tab" data-tab="site-b">🅱️ Site B Database</button>
+            <button class="tab" data-tab="drift">📈 Drift Analysis</button>
+            <button class="tab" data-tab="migration">🔀 Re-Fragmentation</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- OVERVIEW TAB -->
+        <section id="tab-overview" class="tab-content active">
+            <div class="stats-grid" id="stats-grid"></div>
+            <div class="card">
+                <h2>📋 System Architecture</h2>
+                <div class="arch-diagram">
+                    <div class="arch-site">
+                        <div class="arch-label site-a-bg">Site A — bank_site_a:5431</div>
+                        <p>Customers: <strong>Horizontal Fragment</strong> (<code>homebranchid = 'A'</code>)</p>
+                        <p>Transactions: <strong>Horizontal Fragment</strong> (<code>atm_branchid = 'A'</code>)</p>
+                    </div>
+                    <div class="arch-arrow">⇄</div>
+                    <div class="arch-site">
+                        <div class="arch-label site-b-bg">Site B — bank_site_b:5433</div>
+                        <p>Customers: <strong>Horizontal Fragment</strong> (<code>homebranchid = 'B'</code>)</p>
+                        <p>Transactions: <strong>Horizontal Fragment</strong> (<code>atm_branchid = 'B'</code>)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SITE A TAB -->
+        <section id="tab-site-a" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🅰️ Site A Database — Customers</h2>
+                    <div class="controls">
+                        <input type="text" id="search-a" class="search-input" placeholder="Search by name or email...">
+                        <select id="branch-filter-a" class="select-input">
+                            <option value="">All Branches</option>
+                            <option value="A">Branch A</option>
+                            <option value="B">Branch B</option>
+                        </select>
+                        <button class="btn-csv" onclick="exportCSV('customers', 'a')">📥 Export Customers</button>
+                        <button class="btn-csv" onclick="exportCSV('transactions', 'a')">📥 Export TX</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="table-a">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Full Name</th><th>Email</th><th>Phone</th>
+                                <th>Branch</th><th>Account</th><th>Balance</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination-a"></div>
+            </div>
+        </section>
+
+        <!-- SITE B TAB -->
+        <section id="tab-site-b" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🅱️ Site B Database — Customers</h2>
+                    <div class="controls">
+                        <input type="text" id="search-b" class="search-input" placeholder="Search by name or email...">
+                        <select id="branch-filter-b" class="select-input">
+                            <option value="">All Branches</option>
+                            <option value="A">Branch A</option>
+                            <option value="B">Branch B</option>
+                        </select>
+                        <button class="btn-csv" onclick="exportCSV('customers', 'b')">📥 Export Customers</button>
+                        <button class="btn-csv" onclick="exportCSV('transactions', 'b')">📥 Export TX</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="table-b">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Full Name</th><th>Email</th><th>Phone</th>
+                                <th>Branch</th><th>Account</th><th>Balance</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination-b"></div>
+            </div>
+        </section>
+
+        <!-- DRIFT ANALYSIS TAB -->
+        <section id="tab-drift" class="tab-content">
+            <div style="display:flex; justify-content:flex-end; margin-bottom: 16px;">
+                <button class="btn-csv" onclick="exportCSV('drift')">📥 Xuất Báo Cáo Drift (CSV)</button>
+            </div>
+            <div class="lr-comparison" id="lr-comparison"></div>
+        </section>
+
+        <!-- MIGRATION TAB -->
+        <section id="tab-migration" class="tab-content">
+            <div class="card">
+                <h2>🔀 Re-Fragmentation Simulation</h2>
+                <p class="desc">When drift is detected (LR &lt; threshold), drifted customers are <strong>reassigned</strong> to their new branch and their data is moved to the corresponding site. Customer counts per branch will update to reflect the migration.</p>
+                <div class="migration-flow">
+                    <div class="mig-panel">
+                        <h3>Before: Drift Detected</h3>
+                        <p>Some customers have LR &lt; <span id="mig-lr-desc">0.70</span> (high remote TX). LR drops below threshold.</p>
+                    </div>
+                    <div class="mig-arrow" id="mig-arrow">→</div>
+                    <div class="mig-panel">
+                        <h3>After: Re-Fragmentation</h3>
+                        <p>Drifted customers reassigned to new branch. Their data moves to the new home site.</p>
+                    </div>
+                </div>
+                <button class="btn btn-migrate" id="btn-migrate" onclick="runMigration()">
+                    ⚡ Execute Re-Fragmentation
+                </button>
+                <div id="migration-result" class="migration-result hidden"></div>
+            </div>
+            <div class="card">
+                <div class="card-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h2>📋 Migration Candidates (LR &lt; <span id="cand-lr-title">0.70</span>)</h2>
+                        <p class="desc" style="margin-bottom: 0;">Customers with Locality of Reference (LR) &lt; <span id="cand-lr-desc">0.70</span> across all transactions (candidates for branch reassignment):</p>
+                    </div>
+                    <div class="controls">
+                        <input type="text" id="search-candidates" class="search-input" placeholder="🔍 Search by customer name...">
+                        <button class="btn-csv" onclick="exportCSV('candidates')">📥 Xuất Candidates (CSV)</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="table-candidates">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Name</th><th>Email</th><th>Migration</th><th>Local TX</th>
+                                <th>Remote TX</th><th>Remote %</th><th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- CUSTOMER DETAIL MODAL -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

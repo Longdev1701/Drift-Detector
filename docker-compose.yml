@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  db_site_a:
+    image: postgres:15
+    container_name: bank_site_a
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: bank_db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5431:5432"
+
+  db_site_b:
+    image: postgres:15
+    container_name: bank_site_b
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: bank_db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
