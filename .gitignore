@@ -31,9 +31,9 @@ Desktop.ini
 # Office temp files
 ~$*
 
-# Reports (generated)
-report/*.pdf
-report/*.xlsx
+# Reports & Dataset (local only, not pushed to repo)
+report/
+dataset/
 
 # Docker
 docker-compose.override.yml
