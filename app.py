@@ -201,12 +201,12 @@ def migration_candidates():
     """Find ALL drifted customers (>50% remote TX on Day 30) from both branches"""
     threshold = request.args.get('threshold', LR_THRESHOLD, type=float)
     
-    # TX counts per customer from both sites
+    # TX counts per customer from both sites on Day 30
     tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_a[r['customerid']] = r['cnt']
     tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_b[r['customerid']] = r['cnt']
 
     # Lấy customers từ CẢ 2 site (distributed query)
@@ -225,7 +225,9 @@ def migration_candidates():
         if total == 0:
             continue
         lr = local_cnt / total
-        if lr < threshold:
+        # Chỉ coi là candidate nếu thực sự bị drift (giao dịch remote nhiều hơn local, tức là lr < 0.5)
+        # và đồng thời lr < threshold
+        if lr < threshold and lr < 0.5:
             remote_pct = round(remote_cnt / total * 100, 1)
             candidates.append({
                 'customerid': cid,
@@ -263,12 +265,12 @@ def migrate():
         cur.close()
         conn.close()
 
-    # ── Step 1: Compute per-customer TX distribution on all days ──
+    # ── Step 1: Compute per-customer TX distribution on Day 30 ──
     tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_a[r['customerid']] = r['cnt']
     tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_b[r['customerid']] = r['cnt']
 
     # Lấy tất cả customers từ cả 2 site
@@ -289,7 +291,7 @@ def migrate():
         if total == 0:
             continue
         lr = local_cnt / total
-        if lr < threshold:
+        if lr < threshold and lr < 0.5:
             if branch == 'A':
                 migrate_a_to_b.append(cid)
             else:
@@ -517,10 +519,10 @@ def export_candidates_csv():
     threshold = request.args.get('threshold', LR_THRESHOLD, type=float)
     
     tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_a[r['customerid']] = r['cnt']
     tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions GROUP BY customerid"):
+    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
         tx_at_b[r['customerid']] = r['cnt']
 
     all_custs = []
@@ -538,7 +540,7 @@ def export_candidates_csv():
         if total == 0:
             continue
         lr = local_cnt / total
-        if lr < threshold:
+        if lr < threshold and lr < 0.5:
             remote_pct = round(remote_cnt / total * 100, 1)
             candidates.append({
                 'customerid': cid,

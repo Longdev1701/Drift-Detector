@@ -77,7 +77,7 @@ DDB_Project/
 ├── datasetOfDriftDetector.rar # Dataset dự phòng của hệ thống
 ├── db_scripts/
 │   ├── init_db.py             # Khởi tạo Schema và seed 5,000 customers ban đầu
-│   └── simulate_workload.py   # Tạo dữ liệu giao dịch Day 1 (LR=0.90) và Day 30 (LR=0.40)
+│   └── simulate_workload.py   # Tạo dữ liệu giao dịch Day 1 (LR=0.90) và Day 30 (LR≈0.22)
 ├── templates/
 │   └── index.html             # Giao diện dashboard HTML
 └── static/
@@ -124,7 +124,7 @@ python db_scripts/init_db.py
 ### Bước 4: Tạo dữ liệu mô phỏng giao dịch (Workload Simulation)
 Chạy kịch bản mô phỏng để tạo giao dịch cho 2 mốc thời gian:
 - **Day 1 (Mặc định)**: Tỷ lệ giao dịch nội vùng cao (~90% giao dịch thực hiện tại ATM cùng chi nhánh với nơi mở tài khoản).
-- **Day 30 (Lệch phân mảnh)**: Khách hàng di chuyển khiến tỷ lệ giao dịch nội vùng giảm mạnh xuống còn khoảng ~35-45%, kích hoạt cảnh báo Drift.
+- **Day 30 (Lệch phân mảnh)**: Khách hàng di chuyển khiến tỷ lệ giao dịch nội vùng giảm mạnh xuống còn khoảng ~20-25%, kích hoạt cảnh báo Drift.
 
 ```bash
 python db_scripts/simulate_workload.py
@@ -147,7 +147,8 @@ Truy cập vào ứng dụng qua trình duyệt tại địa chỉ: **[http://lo
      $$\text{LR} = \frac{\text{Số giao dịch thực hiện tại ATM cùng chi nhánh (Nội vùng)}}{\text{Tổng số giao dịch của khách hàng}}$$
    - Tại màn hình **Drift Analysis**, người dùng dễ dàng so sánh biểu đồ hiệu năng hệ thống giữa Day 1 (khoẻ mạnh) và Day 30 (bị lệch hiệu năng).
 2. **Tìm Kiếm Ứng Viên Di Trú (Migration Candidates)**:
-   - Hệ thống lọc ra tất cả những khách hàng có chỉ số $LR < \text{Ngưỡng chỉ định}$ (mặc định là $0.70$).
+   - Hệ thống lọc ra tất cả những khách hàng có chỉ số $LR < \text{Ngưỡng chỉ định}$ (mặc định là $0.70$) **và** $LR < 0.50$ (tức giao dịch remote chiếm quá bán).
+   - Phân tích dựa trên dữ liệu giao dịch **Day 30** (thời điểm drift nặng nhất) để xác định chính xác hành vi hiện tại của khách hàng.
    - Nếu đa số giao dịch của họ lại phát sinh ở ATM thuộc chi nhánh khác, họ sẽ được xếp vào danh sách cần tái phân mảnh động.
 3. **Thực thi Tái Phân Mảnh (Dynamic Re-Fragmentation)**:
    - Khi kích hoạt lệnh **Migrate**, hệ thống sẽ:

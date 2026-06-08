@@ -106,9 +106,9 @@ def run_simulation():
     
     print("▶ Bắt đầu sinh giao dịch ngẫu nhiên từ Day 1 đến Day 30...")
     for day in range(1, 31):
-        # Nội suy tỷ lệ cục bộ từ 90% (Day 1) giảm xuống 35%/45% (Day 30)
-        rate_a = 0.90 - (0.90 - 0.35) * (day - 1) / 29.0
-        rate_b = 0.90 - (0.90 - 0.45) * (day - 1) / 29.0
+        # Nội suy tỷ lệ cục bộ từ 90% (Day 1) giảm xuống 20%/25% (Day 30) để tạo drift rõ rệt hơn, giúp LR sau di chuyển vượt ngưỡng 0.7
+        rate_a = 0.90 - (0.90 - 0.20) * (day - 1) / 29.0
+        rate_b = 0.90 - (0.90 - 0.25) * (day - 1) / 29.0
         
         txs = generate_transactions(day, rate_a, rate_b)
         if txs:
