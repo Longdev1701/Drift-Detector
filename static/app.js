@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('branch-filter-a').addEventListener('change', () => { currentPageA = 1; loadCustomers('a'); });
     document.getElementById('branch-filter-b').addEventListener('change', () => { currentPageB = 1; loadCustomers('b'); });
     
-    document.getElementById('lr-threshold').addEventListener('change', () => {
+    document.getElementById('lr-threshold').addEventListener('input', () => {
         updateThresholdLabels();
         loadLR();
         loadCandidates();
