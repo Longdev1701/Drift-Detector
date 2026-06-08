@@ -155,9 +155,14 @@
                 <div class="card-header" style="margin-bottom: 16px;">
                     <div>
                         <h2>📋 Migration Candidates (LR &lt; <span id="cand-lr-title">0.70</span>)</h2>
-                        <p class="desc" style="margin-bottom: 0;">Customers with Locality of Reference (LR) &lt; <span id="cand-lr-desc">0.70</span> across all transactions (candidates for branch reassignment):</p>
+                        <p class="desc" style="margin-bottom: 0;">Customers with Locality of Reference (LR) &lt; <span id="cand-lr-desc">0.70</span> on Day 30 workload (candidates for branch reassignment):</p>
                     </div>
                     <div class="controls">
+                        <select id="filter-candidate-direction" class="select-input">
+                            <option value="">All Directions</option>
+                            <option value="A->B">A → B</option>
+                            <option value="B->A">B → A</option>
+                        </select>
                         <input type="text" id="search-candidates" class="search-input" placeholder="🔍 Search by customer name...">
                         <button class="btn-csv" onclick="exportCSV('candidates')">📥 Xuất Candidates (CSV)</button>
                     </div>
@@ -166,8 +171,8 @@
                     <table id="table-candidates">
                         <thead>
                             <tr>
-                                <th>ID</th><th>Name</th><th>Email</th><th>Migration</th><th>Local TX</th>
-                                <th>Remote TX</th><th>Remote %</th><th>Details</th>
+                                <th>ID</th><th>Name</th><th>Email</th><th>Migration</th><th>Local TX (Day 30)</th>
+                                <th>Remote TX (Day 30)</th><th>Remote % (Day 30)</th><th>Details</th>
                             </tr>
                         </thead>
                         <tbody></tbody>

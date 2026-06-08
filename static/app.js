@@ -147,6 +147,16 @@ async function viewCustomer(cid) {
     const c = d.customer;
     if (!c) { content.innerHTML = '<p>Customer not found</p>'; return; }
 
+    const day30A = d.site_a.filter(t => t.workload_day === 30);
+    const day30B = d.site_b.filter(t => t.workload_day === 30);
+    const day30AtmA = day30A.filter(t => t.atm_branchid === 'A').length + day30B.filter(t => t.atm_branchid === 'A').length;
+    const day30AtmB = day30A.filter(t => t.atm_branchid === 'B').length + day30B.filter(t => t.atm_branchid === 'B').length;
+    
+    const localDay30 = c.homebranchid === 'A' ? day30AtmA : day30AtmB;
+    const remoteDay30 = c.homebranchid === 'A' ? day30AtmB : day30AtmA;
+    const totalDay30 = localDay30 + remoteDay30;
+    const remotePctDay30 = totalDay30 > 0 ? ((remoteDay30 / totalDay30) * 100).toFixed(1) : '0.0';
+
     const txRowsA = d.site_a.map(t => `<tr>
         <td>${t.txid}</td><td><span class="badge badge-${t.atm_branchid.toLowerCase()}">${t.atm_branchid}</span></td>
         <td>$${Number(t.amount).toLocaleString('en',{minimumFractionDigits:2})}</td>
@@ -161,8 +171,6 @@ async function viewCustomer(cid) {
         <td><button class="btn btn-sm" style="padding:2px 6px;background:var(--red);color:white;border:none;border-radius:4px;cursor:pointer" onclick="delTx(${t.txid}, 'b', ${cid})">✕</button></td>
     </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-dim)">No transactions</td></tr>';
 
-    const isLocal = (site, branch) => site === 'a' && branch === 'A' || site === 'b' && branch === 'B';
-
     content.innerHTML = `
         <h2>${c.fullname}</h2>
         <p style="color:var(--text-dim)">Customer #${c.customerid}</p>
@@ -173,6 +181,16 @@ async function viewCustomer(cid) {
             <div><span class="label">Account:</span> ${c.account_type}</div>
             <div><span class="label">Balance:</span> $${Number(c.account_balance).toLocaleString('en',{minimumFractionDigits:2})}</div>
             <div><span class="label">Home Branch:</span> <span class="badge badge-${c.homebranchid.toLowerCase()}">${c.homebranchid}</span></div>
+        </div>
+
+        <div style="margin: 16px 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 8px;">
+            <h4 style="margin: 0 0 10px 0; color: var(--accent-a); font-size: 14px; font-weight: 600;">📊 Day 30 Transaction Summary (For Re-Fragmentation Decision)</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                <div><span style="font-size: 12px; color: var(--text-dim);">Local TX (Day 30):</span><div style="font-size: 16px; font-weight: bold;">${localDay30}</div></div>
+                <div><span style="font-size: 12px; color: var(--text-dim);">Remote TX (Day 30):</span><div style="font-size: 16px; font-weight: bold; color: var(--red);">${remoteDay30}</div></div>
+                <div><span style="font-size: 12px; color: var(--text-dim);">Remote % (Day 30):</span><div style="font-size: 16px; font-weight: bold; color: ${remotePctDay30 > 50 ? 'var(--red)' : 'var(--orange)'};">${remotePctDay30}%</div></div>
+                <div><span style="font-size: 12px; color: var(--text-dim);">LR (Day 30):</span><div style="font-size: 16px; font-weight: bold;">${totalDay30 > 0 ? (localDay30 / totalDay30).toFixed(3) : '0.000'}</div></div>
+            </div>
         </div>
 
         <h3 style="display:flex;justify-content:space-between;align-items:center;">
@@ -278,6 +296,8 @@ async function loadCandidates() {
     allCandidates = d.candidates || [];
     const searchInput = document.getElementById('search-candidates');
     if (searchInput) searchInput.value = '';
+    const directionSelect = document.getElementById('filter-candidate-direction');
+    if (directionSelect) directionSelect.value = '';
     renderCandidates(allCandidates);
 }
 
@@ -297,17 +317,38 @@ function renderCandidates(list) {
     `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text-dim)">No candidates found</td></tr>';
 }
 
-// Search candidates by name
+// Search and filter candidates
+function filterAndRenderCandidates() {
+    const searchInput = document.getElementById('search-candidates');
+    const directionSelect = document.getElementById('filter-candidate-direction');
+    
+    let list = allCandidates;
+    
+    if (directionSelect) {
+        const dir = directionSelect.value;
+        if (dir === 'A->B') {
+            list = list.filter(c => c.homebranchid === 'A');
+        } else if (dir === 'B->A') {
+            list = list.filter(c => c.homebranchid === 'B');
+        }
+    }
+    
+    if (searchInput) {
+        const q = searchInput.value.trim().toLowerCase();
+        if (q) {
+            list = list.filter(c => c.fullname.toLowerCase().includes(q));
+        }
+    }
+    
+    renderCandidates(list);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-candidates');
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            const q = searchInput.value.trim().toLowerCase();
-            if (!q) { renderCandidates(allCandidates); return; }
-            const filtered = allCandidates.filter(c => c.fullname.toLowerCase().includes(q));
-            renderCandidates(filtered);
-        });
-    }
+    const directionSelect = document.getElementById('filter-candidate-direction');
+    
+    if (searchInput) searchInput.addEventListener('input', filterAndRenderCandidates);
+    if (directionSelect) directionSelect.addEventListener('change', filterAndRenderCandidates);
 });
 
 // ── Migration ──
@@ -340,6 +381,7 @@ async function runMigration() {
     // Refresh data
     loadOverview();
     loadLR();
+    loadCandidates();
 }
 
 // ── Undo Migration ──

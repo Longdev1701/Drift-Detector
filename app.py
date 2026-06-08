@@ -201,13 +201,17 @@ def migration_candidates():
     """Find ALL drifted customers (>50% remote TX on Day 30) from both branches"""
     threshold = request.args.get('threshold', LR_THRESHOLD, type=float)
     
-    # TX counts per customer from both sites on Day 30
-    tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_a[r['customerid']] = r['cnt']
-    tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_b[r['customerid']] = r['cnt']
+    # Count transactions by atm_branchid (A or B) per customer from both sites on Day 30
+    tx_counts = {}
+    for s in ['a', 'b']:
+        rows = query(s, "SELECT customerid, atm_branchid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid, atm_branchid")
+        for r in rows:
+            cid = r['customerid']
+            atm = r['atm_branchid'].strip()
+            cnt = r['cnt']
+            if cid not in tx_counts:
+                tx_counts[cid] = {'A': 0, 'B': 0}
+            tx_counts[cid][atm] = tx_counts[cid].get(atm, 0) + cnt
 
     # Lấy customers từ CẢ 2 site (distributed query)
     all_custs = []
@@ -219,8 +223,9 @@ def migration_candidates():
     for c in all_custs:
         cid = c['customerid']
         branch = c['homebranchid'].strip()
-        local_cnt = tx_at_a.get(cid, 0) if branch == 'A' else tx_at_b.get(cid, 0)
-        remote_cnt = tx_at_b.get(cid, 0) if branch == 'A' else tx_at_a.get(cid, 0)
+        counts = tx_counts.get(cid, {'A': 0, 'B': 0})
+        local_cnt = counts['A'] if branch == 'A' else counts['B']
+        remote_cnt = counts['B'] if branch == 'A' else counts['A']
         total = local_cnt + remote_cnt
         if total == 0:
             continue
@@ -266,12 +271,16 @@ def migrate():
         conn.close()
 
     # ── Step 1: Compute per-customer TX distribution on Day 30 ──
-    tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_a[r['customerid']] = r['cnt']
-    tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_b[r['customerid']] = r['cnt']
+    tx_counts = {}
+    for s in ['a', 'b']:
+        rows = query(s, "SELECT customerid, atm_branchid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid, atm_branchid")
+        for r in rows:
+            cid = r['customerid']
+            atm = r['atm_branchid'].strip()
+            cnt = r['cnt']
+            if cid not in tx_counts:
+                tx_counts[cid] = {'A': 0, 'B': 0}
+            tx_counts[cid][atm] = tx_counts[cid].get(atm, 0) + cnt
 
     # Lấy tất cả customers từ cả 2 site
     all_custs = []
@@ -285,8 +294,9 @@ def migrate():
     for c in all_custs:
         cid = c['customerid']
         branch = c['homebranchid'].strip()
-        local_cnt = tx_at_a.get(cid, 0) if branch == 'A' else tx_at_b.get(cid, 0)
-        remote_cnt = tx_at_b.get(cid, 0) if branch == 'A' else tx_at_a.get(cid, 0)
+        counts = tx_counts.get(cid, {'A': 0, 'B': 0})
+        local_cnt = counts['A'] if branch == 'A' else counts['B']
+        remote_cnt = counts['B'] if branch == 'A' else counts['A']
         total = local_cnt + remote_cnt
         if total == 0:
             continue
@@ -518,12 +528,17 @@ def export_transactions_csv(site):
 def export_candidates_csv():
     threshold = request.args.get('threshold', LR_THRESHOLD, type=float)
     
-    tx_at_a = {}
-    for r in query('a', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_a[r['customerid']] = r['cnt']
-    tx_at_b = {}
-    for r in query('b', "SELECT customerid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid"):
-        tx_at_b[r['customerid']] = r['cnt']
+    # Count transactions by atm_branchid (A or B) per customer from both sites on Day 30
+    tx_counts = {}
+    for s in ['a', 'b']:
+        rows = query(s, "SELECT customerid, atm_branchid, COUNT(*) as cnt FROM transactions WHERE workload_day=30 GROUP BY customerid, atm_branchid")
+        for r in rows:
+            cid = r['customerid']
+            atm = r['atm_branchid'].strip()
+            cnt = r['cnt']
+            if cid not in tx_counts:
+                tx_counts[cid] = {'A': 0, 'B': 0}
+            tx_counts[cid][atm] = tx_counts[cid].get(atm, 0) + cnt
 
     all_custs = []
     for s in ['a','b']:
@@ -534,8 +549,9 @@ def export_candidates_csv():
     for c in all_custs:
         cid = c['customerid']
         branch = c['homebranchid'].strip()
-        local_cnt = tx_at_a.get(cid, 0) if branch == 'A' else tx_at_b.get(cid, 0)
-        remote_cnt = tx_at_b.get(cid, 0) if branch == 'A' else tx_at_a.get(cid, 0)
+        counts = tx_counts.get(cid, {'A': 0, 'B': 0})
+        local_cnt = counts['A'] if branch == 'A' else counts['B']
+        remote_cnt = counts['B'] if branch == 'A' else counts['A']
         total = local_cnt + remote_cnt
         if total == 0:
             continue
